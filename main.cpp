@@ -12,9 +12,10 @@ struct Light {
 };
 
 struct Material {
-    Material(const Vec2f &a, const Vec3f &color, const float &spec) : albedo(a), diffuse_color(color), specular_exponent(spec) {}
-    Material() : albedo(1, 0), diffuse_color(), specular_exponent() {}
-    Vec2f albedo;
+    Material(const float &r, const Vec4f &a, const Vec3f &color, const float &spec) : refractive_index(r), albedo(a), diffuse_color(color), specular_exponent(spec) {}
+    Material() : refractive_index(1), albedo(1, 0, 0, 0), diffuse_color(), specular_exponent() {}
+    float refractive_index;
+    Vec4f albedo;
     Vec3f diffuse_color;
     float specular_exponent;
 };
@@ -58,13 +59,34 @@ bool scene_intersect(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphe
     return spheres_dist<1000;
 }
 
-Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &spheres, const std::vector<Light> &lights) {
+Vec3f refract(const Vec3f &I, const Vec3f &N, const float &refractive_index) {
+    float cosi = - std::max(-1.f, std::min(1.f, I*N));
+    float etai = 1, etat = refractive_index;
+    Vec3f n = N;
+    if(cosi < 0) {
+        cosi = -cosi;
+        std::swap(etai, etat); n = -N;
+    }
+    float eta = etai / etat;
+    float k = 1 - eta*eta*(1 - cosi*cosi);
+    return k < 0 ? Vec3f(0,0,0): I*eta + n*(eta * cosi - sqrtf(k));
+}
+
+
+Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &spheres, const std::vector<Light> &lights, size_t depth=0) {
     Vec3f point, N;
     Material material;
 
-    if (!scene_intersect(orig, dir, spheres, point, N, material)) {
+    if (depth>4 || !scene_intersect(orig, dir, spheres, point, N, material)) {
         return Vec3f(0.2, 0.7, 0.8);
     }
+
+    Vec3f reflect_dir = reflect(dir, N);
+    Vec3f refract_dir = refract(dir, N, material.refractive_index).normalize();
+    Vec3f reflect_orig = reflect_dir*N < 0 ? point - N*1e-3 : point + N*1e-3;
+    Vec3f refract_orig= reflect_dir*N < 0 ? point - N*1e-3 : point + N*1e-3;
+    Vec3f reflect_color = cast_ray(reflect_orig, reflect_dir, spheres, lights, depth+1);
+    Vec3f refract_color = cast_ray(reflect_orig, refract_dir, spheres, lights, depth+1);
 
     float diffuse_light_indensity = 0, specular_light_indensity = 0;
     for (size_t i=0; i<lights.size(); i++) {
@@ -79,7 +101,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
         specular_light_indensity += powf(std::max(0.f, -reflect(-light_dir, N)*dir), material.specular_exponent)*lights[i].intensity;
     }
 
-    return material.diffuse_color * diffuse_light_indensity * material.albedo[0] + Vec3f(1., 1., 1.)*specular_light_indensity * material.albedo[1];
+    return material.diffuse_color * diffuse_light_indensity * material.albedo[0] + Vec3f(1., 1., 1.)*specular_light_indensity * material.albedo[1] + reflect_color*material.albedo[2] + refract_color*material.albedo[3];
 }
 
 void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights) {
@@ -114,15 +136,17 @@ void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights
 }
 
 int main() {
-    Material ivory(Vec2f(0.6, 0.3), Vec3f(0.4, 0.4, 0.3), 50.);
-    Material red_rubber(Vec2f(0.9, 0.1), Vec3f(0.3, 0.1, 0.1), 10.);
+    Material ivory(1.0, Vec4f(0.6, 0.3, 0.1, 0.0), Vec3f(0.4, 0.4, 0.3), 50.);
+    Material glass(1.5, Vec4f(0.0, 10.0, 0.8, 0.0), Vec3f(1.0, 1.0, 1.0), 1425.);
+    Material red_rubber(1.0, Vec4f(0.9, 0.1, 0.0, 0.0), Vec3f(0.3, 0.1, 0.1), 10.);
+    Material mirror(1.0, Vec4f(10.0, 10.0, 0.8, 0.0), Vec3f(1.0, 1.0, 1.0), 1425.);
 
     std::vector<Sphere> spheres;
 
     spheres.push_back(Sphere(Vec3f(-3, 0, -16), 2, ivory));
-    spheres.push_back(Sphere(Vec3f(-1.0, 1.5, -12), 2, red_rubber));
+    spheres.push_back(Sphere(Vec3f(-1.0, 1.5, -12), 2, glass));
     spheres.push_back(Sphere(Vec3f(1.5, -0.5, -18), 3, red_rubber));
-    spheres.push_back(Sphere(Vec3f(7, 5, -18), 4, ivory));
+    spheres.push_back(Sphere(Vec3f(7, 5, -18), 4, mirror));
 
     std::vector<Light> lights;
     lights.push_back(Light(Vec3f(-20, 20, 20), 1.5));
