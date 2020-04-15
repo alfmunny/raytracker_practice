@@ -1,12 +1,10 @@
-# How to implement a basic ray tracing renderer
+- [How to implement a basic ray tracing renderer](#sec-1)
+  - [Preparation](#sec-1-1)
+
+# How to implement a basic ray tracing renderer<a id="sec-1"></a>
 
 
-# Table of Contents
-
-1.  [How to implement a basic ray tracing renderer](#org2d6af53)
-    1.  [Preparation](#org735b7a8)
-
-## Preparation
+## Preparation<a id="sec-1-1"></a>
 
 As a starter, let's simply paint some color first, and ouput it to a pixmap file. We use [PPM](https://en.wikipedia.org/wiki/Netpbm). It is a very simple format for pixmap.
 
@@ -32,8 +30,8 @@ void output(const int width, const int height, std::vector<Vec3f> framebuffer) {
 }
 
 void render() {
-  const int width = 200;
-  const int height = 100;
+  const int width = 1024;
+  const int height = 768;
 
   std::vector<Vec3f> framebuffer(width*height);
 
