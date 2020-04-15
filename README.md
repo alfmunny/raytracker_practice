@@ -3,66 +3,22 @@
 
 # Table of Contents
 
-1.  [How to implement a basic ray tracing renderer](#org51b3e67)
-    1.  [Preparation](#org6a233ef)
+1.  [How to implement a basic ray tracing renderer](#org2d6af53)
+    1.  [Preparation](#org735b7a8)
 
 ## Preparation
 
 As a starter, let's simply paint some color first, and ouput it to a pixmap file. We use [PPM](https://en.wikipedia.org/wiki/Netpbm). It is a very simple format for pixmap.
 
 ```C++
-#include <cassert>
-#include <cmath>
-#include <vector>
-template <size_t DIM , typename T> struct vec {
-  vec() { for (size_t i=DIM; i--; data_[i] = T()); }
-  T& operator[](const size_t i) { assert(i<DIM); return data_[i]; }
-  const T& operator[](const size_t i) const { assert(i<DIM); return data_[i]; }
-private:
-  T data_[DIM];
-};
-
-typedef vec<2, float> Vec2f;
-typedef vec<3, float> Vec3f;
-
-template <typename T> struct vec<3, T> {
-  vec() : x(T()), y(T()), z(T()) {}
-  vec(T X, T Y, T Z) : x(X), y(Y), z(Z) {}
-  T& operator[](const size_t i) { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
-  const T& operator[](const size_t i) const { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
-  T x,y,z;
-};
-```
-
-```C++
-#include <cassert>
-#include <cmath>
-#include <vector>
-template <size_t DIM , typename T> struct vec {
-  vec() { for (size_t i=DIM; i--; data_[i] = T()); }
-  T& operator[](const size_t i) { assert(i<DIM); return data_[i]; }
-  const T& operator[](const size_t i) const { assert(i<DIM); return data_[i]; }
-private:
-  T data_[DIM];
-};
-
-typedef vec<2, float> Vec2f;
-typedef vec<3, float> Vec3f;
-
-template <typename T> struct vec<3, T> {
-  vec() : x(T()), y(T()), z(T()) {}
-  vec(T X, T Y, T Z) : x(X), y(Y), z(Z) {}
-  T& operator[](const size_t i) { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
-  const T& operator[](const size_t i) const { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
-  T x,y,z;
-};
+<<geometry>>
 
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <fstream>
 
-void output(framebuffer) {
+void output(const int width, const int height, std::vector<Vec3f> framebuffer) {
   std::ofstream ofs; // save the framebuffer to file
   ofs.open("./out.ppm");
   ofs << "P6\n" << width << " " << height << "\n255\n";
@@ -87,7 +43,7 @@ void render() {
     }
   }
 
-  output(framebuffer);
+  output(width, height, framebuffer);
 }
 
 int main() {
